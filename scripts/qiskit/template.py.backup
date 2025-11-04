@@ -1,4 +1,4 @@
-# template.py - Adiabatic Quantum Evolution
+# template.py
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit.library import RZGate, RZZGate, RXXGate, RYYGate
 from qiskit.providers.basic_provider import BasicSimulator
@@ -6,27 +6,33 @@ from qiskit.visualization import plot_histogram
 import numpy as np
 import matplotlib.pyplot as plt
 
+gamma = 0.5
+beta  = 0.1
 n_qubits = 3
-T = 100.0  # Total evolution time
-trotter_steps = 500  # Number of Trotter steps
+
+trotter_steps = 10
+T = 1.0
 
 qr = QuantumRegister(n_qubits)
 cr = ClassicalRegister(n_qubits, name='cr')
 qc = QuantumCircuit(qr, cr)
 
-beta  = 0.1
+is_clique = False
 
-for i in range(n_qubits):
-    qc.h(i)
+if is_clique:
+    for step in range(trotter_steps):
+        for j in range(n_qubits):
+            for k in range(n_qubits):
+                if j != k:
+                    qc.append(RXXGate(4 * gamma / trotter_steps), [j, k])
+                    qc.append(RYYGate(4 * gamma / trotter_steps), [j, k])
+else:
+    for i in range(n_qubits):
+        qc.h(i)
 
 for step in range(trotter_steps):
-    t = (step + 0.5) / trotter_steps
-    s = t
-    dt = T / trotter_steps
-    gamma = s
-
 # INSERT_RZZ_GATES_HERE
-    
+
     for i in range(n_qubits):
         qc.rx(2 * beta, i)
 
@@ -39,13 +45,4 @@ job = simulator.run(compiled_circuit, shots=1024)
 result = job.result()
 counts = result.get_counts()
 
-# Sort by count and show top results
-sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
-print("Top 10 measurement results:")
-for bitstring, count in sorted_counts[:10]:
-    print(f"  {bitstring}: {count}")
-
-print(f"\nAll results: {dict(sorted_counts)}")
-
-top5 = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:5]
-print(top5)
+print(result.get_counts())
